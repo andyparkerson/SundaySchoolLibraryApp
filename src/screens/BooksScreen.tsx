@@ -8,11 +8,11 @@ function BooksScreen(): React.JSX.Element {
       <Text style={styles.heading}>Book Catalogue</Text>
       <FlatList
         data={SAMPLE_BOOKS}
-        keyExtractor={item => item.id}
+        keyExtractor={item => item.isbn}
         renderItem={({item}) => (
           <View style={styles.bookItem}>
             <Text style={styles.bookTitle}>{item.title}</Text>
-            <Text style={styles.bookAuthor}>{item.author}</Text>
+            <Text style={styles.bookAuthor}>{item.authors.join(', ')}</Text>
           </View>
         )}
       />

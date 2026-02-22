@@ -8,8 +8,8 @@ export const BookService = {
     return books;
   },
 
-  getById(id: string): Book | undefined {
-    return books.find(b => b.id === id);
+  getById(isbn: string): Book | undefined {
+    return books.find(b => b.isbn === isbn);
   },
 
   add(book: Book): void {
@@ -17,10 +17,10 @@ export const BookService = {
   },
 
   update(updated: Book): void {
-    books = books.map(b => (b.id === updated.id ? updated : b));
+    books = books.map(b => (b.isbn === updated.isbn ? updated : b));
   },
 
-  remove(id: string): void {
-    books = books.filter(b => b.id !== id);
+  remove(isbn: string): void {
+    books = books.filter(b => b.isbn !== isbn);
   },
 };

@@ -1,23 +1,29 @@
-import {CheckoutRecord} from '../models/CheckoutRecord';
+import {Checkout} from '../models/CheckoutRecord';
 
-let records: CheckoutRecord[] = [];
+let records: Checkout[] = [];
 
 export const CheckoutService = {
-  getAll(): CheckoutRecord[] {
+  getAll(): Checkout[] {
     return records;
   },
 
-  getActiveByBook(bookId: string): CheckoutRecord | undefined {
-    return records.find(r => r.bookId === bookId && !r.returnedAt);
+  getActiveByBook(bookId: string): Checkout | undefined {
+    return records.find(r => r.bookId === bookId && !r.dateIn);
   },
 
-  checkOut(record: CheckoutRecord): void {
+  checkOut(record: Checkout): void {
     records.push(record);
   },
 
-  returnBook(id: string): void {
-    records = records.map(r =>
-      r.id === id ? {...r, returnedAt: new Date()} : r,
-    );
+  returnBook(bookId: string, userId: string): boolean {
+    let found = false;
+    records = records.map(r => {
+      if (r.bookId === bookId && r.userId === userId && !r.dateIn) {
+        found = true;
+        return {...r, dateIn: new Date()};
+      }
+      return r;
+    });
+    return found;
   },
 };
