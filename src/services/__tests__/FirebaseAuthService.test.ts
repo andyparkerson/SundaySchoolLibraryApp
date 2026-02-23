@@ -140,7 +140,7 @@ describe('FirebaseAuthService', () => {
     });
 
     it('returns null when no document exists', async () => {
-      mockGetDoc.mockResolvedValue({exists: () => false});
+      (getDoc as jest.Mock).mockResolvedValue({exists: () => false});
 
       const profile = await getUserProfile('uid-unknown');
 

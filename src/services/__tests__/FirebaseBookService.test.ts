@@ -3,14 +3,7 @@
  * Firebase SDK modules are fully mocked so no real network calls are made.
  */
 
-// ── Mocks ─────────────────────────────────────────────────────────────────────
-
-const mockGetDocs = jest.fn();
-const mockGetDoc = jest.fn();
-const mockSetDoc = jest.fn().mockResolvedValue(undefined);
-const mockUpdateDoc = jest.fn().mockResolvedValue(undefined);
-const mockDeleteDoc = jest.fn().mockResolvedValue(undefined);
-const mockOnSnapshot = jest.fn();
+// ── Mocks — implementations must be defined inside the factory ───────────────
 
 jest.mock('../../config/firebase', () => ({
   firestore: {},
@@ -19,18 +12,18 @@ jest.mock('../../config/firebase', () => ({
 jest.mock('firebase/firestore', () => ({
   collection: jest.fn(() => ({})),
   doc: jest.fn(() => ({})),
-  getDocs: mockGetDocs,
-  getDoc: mockGetDoc,
+  getDocs: jest.fn(),
+  getDoc: jest.fn(),
   addDoc: jest.fn(),
-  setDoc: mockSetDoc,
-  updateDoc: mockUpdateDoc,
-  deleteDoc: mockDeleteDoc,
-  onSnapshot: mockOnSnapshot,
+  setDoc: jest.fn().mockResolvedValue(undefined),
+  updateDoc: jest.fn().mockResolvedValue(undefined),
+  deleteDoc: jest.fn().mockResolvedValue(undefined),
+  onSnapshot: jest.fn(),
   query: jest.fn(col => col),
   orderBy: jest.fn(() => ({})),
 }));
 
-// ── Import under test ─────────────────────────────────────────────────────────
+// ── Import under test and mocked modules ─────────────────────────────────────
 
 import {
   getAllBooks,
@@ -41,6 +34,7 @@ import {
   subscribeToBooks,
 } from '../FirebaseBookService';
 import {Book} from '../../models/Book';
+import {getDocs, getDoc, setDoc, updateDoc, deleteDoc, onSnapshot} from 'firebase/firestore';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -67,7 +61,7 @@ describe('FirebaseBookService', () => {
 
   describe('getAllBooks', () => {
     it('returns all books from Firestore', async () => {
-      mockGetDocs.mockResolvedValue(makeSnapshot([sampleBook]));
+      (getDocs as jest.Mock).mockResolvedValue(makeSnapshot([sampleBook]));
 
       const books = await getAllBooks();
 
@@ -76,7 +70,7 @@ describe('FirebaseBookService', () => {
     });
 
     it('returns an empty array when the collection is empty', async () => {
-      mockGetDocs.mockResolvedValue(makeSnapshot([]));
+      (getDocs as jest.Mock).mockResolvedValue(makeSnapshot([]));
 
       const books = await getAllBooks();
 
@@ -86,7 +80,7 @@ describe('FirebaseBookService', () => {
 
   describe('getBookByIsbn', () => {
     it('returns the book when the document exists', async () => {
-      mockGetDoc.mockResolvedValue({exists: () => true, data: () => sampleBook});
+      (getDoc as jest.Mock).mockResolvedValue({exists: () => true, data: () => sampleBook});
 
       const book = await getBookByIsbn('9780781444996');
 
@@ -94,7 +88,7 @@ describe('FirebaseBookService', () => {
     });
 
     it('returns undefined when the document does not exist', async () => {
-      mockGetDoc.mockResolvedValue({exists: () => false});
+      (getDoc as jest.Mock).mockResolvedValue({exists: () => false});
 
       const book = await getBookByIsbn('0000000000000');
 
@@ -106,7 +100,7 @@ describe('FirebaseBookService', () => {
     it('calls setDoc with the book data', async () => {
       await addBook(sampleBook);
 
-      expect(mockSetDoc).toHaveBeenCalledWith(
+      expect(setDoc).toHaveBeenCalledWith(
         expect.anything(),
         sampleBook,
       );
@@ -119,7 +113,7 @@ describe('FirebaseBookService', () => {
 
       await updateBook(updated);
 
-      expect(mockUpdateDoc).toHaveBeenCalledWith(
+      expect(updateDoc).toHaveBeenCalledWith(
         expect.anything(),
         expect.objectContaining({availableCopies: 1}),
       );
@@ -130,24 +124,24 @@ describe('FirebaseBookService', () => {
     it('calls deleteDoc for the given ISBN', async () => {
       await removeBook('9780781444996');
 
-      expect(mockDeleteDoc).toHaveBeenCalled();
+      expect(deleteDoc).toHaveBeenCalled();
     });
   });
 
   describe('subscribeToBooks', () => {
     it('registers a Firestore onSnapshot listener and returns an unsubscribe function', () => {
       const mockUnsub = jest.fn();
-      mockOnSnapshot.mockReturnValue(mockUnsub);
+      (onSnapshot as jest.Mock).mockReturnValue(mockUnsub);
 
       const onUpdate = jest.fn();
       const unsub = subscribeToBooks(onUpdate);
 
-      expect(mockOnSnapshot).toHaveBeenCalled();
+      expect(onSnapshot).toHaveBeenCalled();
       expect(unsub).toBe(mockUnsub);
     });
 
     it('calls onUpdate with parsed books when the snapshot fires', () => {
-      mockOnSnapshot.mockImplementation((_q, callback) => {
+      (onSnapshot as jest.Mock).mockImplementation((_q, callback) => {
         callback(makeSnapshot([sampleBook]));
         return jest.fn();
       });
@@ -159,3 +153,4 @@ describe('FirebaseBookService', () => {
     });
   });
 });
+

@@ -3,15 +3,7 @@
  * Firebase SDK modules are fully mocked so no real network calls are made.
  */
 
-// ── Mocks ─────────────────────────────────────────────────────────────────────
-
-const mockGetDocs = jest.fn();
-const mockAddDoc = jest.fn();
-const mockUpdateDoc = jest.fn().mockResolvedValue(undefined);
-const mockOnSnapshot = jest.fn();
-
-/** Simulate Firestore Timestamp with a toDate() method. */
-const makeTimestamp = (date: Date) => ({toDate: () => date});
+// ── Mocks — implementations must be defined inside the factory ───────────────
 
 jest.mock('../../config/firebase', () => ({
   firestore: {},
@@ -20,19 +12,19 @@ jest.mock('../../config/firebase', () => ({
 jest.mock('firebase/firestore', () => ({
   collection: jest.fn(() => ({})),
   doc: jest.fn(() => ({})),
-  getDocs: mockGetDocs,
-  addDoc: mockAddDoc,
-  updateDoc: mockUpdateDoc,
-  onSnapshot: mockOnSnapshot,
+  getDocs: jest.fn(),
+  addDoc: jest.fn(),
+  updateDoc: jest.fn().mockResolvedValue(undefined),
+  onSnapshot: jest.fn(),
   query: jest.fn(col => col),
   where: jest.fn(() => ({})),
   orderBy: jest.fn(() => ({})),
   Timestamp: {
-    fromDate: (d: Date) => makeTimestamp(d),
+    fromDate: (d: Date) => ({toDate: () => d}),
   },
 }));
 
-// ── Import under test ─────────────────────────────────────────────────────────
+// ── Import under test and mocked modules ─────────────────────────────────────
 
 import {
   getAllCheckouts,
@@ -41,6 +33,7 @@ import {
   subscribeToUserCheckouts,
 } from '../FirebaseCheckoutService';
 import {Checkout} from '../../models/CheckoutRecord';
+import {getDocs, addDoc, updateDoc, onSnapshot} from 'firebase/firestore';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -52,6 +45,8 @@ const sampleCheckout: Checkout = {
   quantity: 1,
   dateOut: now,
 };
+
+const makeTimestamp = (date: Date) => ({toDate: () => date});
 
 function makeSnapshot(checkouts: Array<{id: string; data: object}>) {
   return {
@@ -69,7 +64,7 @@ describe('FirebaseCheckoutService', () => {
 
   describe('getAllCheckouts', () => {
     it('returns all checkout records from Firestore', async () => {
-      mockGetDocs.mockResolvedValue(
+      (getDocs as jest.Mock).mockResolvedValue(
         makeSnapshot([
           {
             id: 'co-001',
@@ -93,7 +88,7 @@ describe('FirebaseCheckoutService', () => {
     });
 
     it('returns an empty array when no records exist', async () => {
-      mockGetDocs.mockResolvedValue(makeSnapshot([]));
+      (getDocs as jest.Mock).mockResolvedValue(makeSnapshot([]));
 
       const records = await getAllCheckouts();
 
@@ -103,11 +98,11 @@ describe('FirebaseCheckoutService', () => {
 
   describe('checkOutBook', () => {
     it('calls addDoc with the correct checkout data and returns the new doc ID', async () => {
-      mockAddDoc.mockResolvedValue({id: 'co-new-001'});
+      (addDoc as jest.Mock).mockResolvedValue({id: 'co-new-001'});
 
       const id = await checkOutBook(sampleCheckout);
 
-      expect(mockAddDoc).toHaveBeenCalledWith(
+      expect(addDoc).toHaveBeenCalledWith(
         expect.anything(),
         expect.objectContaining({
           bookId: sampleCheckout.bookId,
@@ -126,7 +121,7 @@ describe('FirebaseCheckoutService', () => {
 
       await returnBook('co-001', returnDate);
 
-      expect(mockUpdateDoc).toHaveBeenCalledWith(
+      expect(updateDoc).toHaveBeenCalledWith(
         expect.anything(),
         expect.objectContaining({
           dateIn: expect.objectContaining({toDate: expect.any(Function)}),
@@ -137,24 +132,24 @@ describe('FirebaseCheckoutService', () => {
     it('uses the current date when returnDate is omitted', async () => {
       await returnBook('co-001');
 
-      expect(mockUpdateDoc).toHaveBeenCalled();
+      expect(updateDoc).toHaveBeenCalled();
     });
   });
 
   describe('subscribeToUserCheckouts', () => {
     it('registers a listener and returns an unsubscribe function', () => {
       const mockUnsub = jest.fn();
-      mockOnSnapshot.mockReturnValue(mockUnsub);
+      (onSnapshot as jest.Mock).mockReturnValue(mockUnsub);
 
       const onUpdate = jest.fn();
       const unsub = subscribeToUserCheckouts('user-001', onUpdate);
 
-      expect(mockOnSnapshot).toHaveBeenCalled();
+      expect(onSnapshot).toHaveBeenCalled();
       expect(unsub).toBe(mockUnsub);
     });
 
     it('calls onUpdate with parsed checkouts when the snapshot fires', () => {
-      mockOnSnapshot.mockImplementation((_q, callback) => {
+      (onSnapshot as jest.Mock).mockImplementation((_q, callback) => {
         callback(
           makeSnapshot([
             {
@@ -184,3 +179,4 @@ describe('FirebaseCheckoutService', () => {
     });
   });
 });
+
