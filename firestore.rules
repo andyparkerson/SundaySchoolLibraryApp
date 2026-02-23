@@ -1,0 +1,86 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ──────────────────────────────────────────────────────────────────────────
+    // Helper functions
+    // ──────────────────────────────────────────────────────────────────────────
+
+    /** Returns true when the request comes from a signed-in user. */
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    /** Fetch the caller's stored role from the users collection. */
+    function callerRole() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role;
+    }
+
+    function isLibrarian() {
+      return isAuthenticated() && callerRole() == 'librarian';
+    }
+
+    function isInstructor() {
+      return isAuthenticated() && callerRole() == 'instructor';
+    }
+
+    function isGeneralUser() {
+      return isAuthenticated() && callerRole() == 'general_user';
+    }
+
+    /** True when the caller is at least an Instructor (Librarian OR Instructor). */
+    function isInstructorOrAbove() {
+      return isLibrarian() || isInstructor();
+    }
+
+    // ──────────────────────────────────────────────────────────────────────────
+    // users/{userId}
+    //   • Any authenticated user can read their own profile.
+    //   • Only Librarians can read other users' profiles or write any profile.
+    //   • New accounts are created by the auth trigger (Cloud Function) —
+    //     client-side writes are locked to the owner's own document.
+    // ──────────────────────────────────────────────────────────────────────────
+    match /users/{userId} {
+      allow read: if isAuthenticated() &&
+                     (request.auth.uid == userId || isLibrarian());
+      allow create: if isAuthenticated() && request.auth.uid == userId;
+      allow update: if isLibrarian();
+      allow delete: if isLibrarian();
+    }
+
+    // ──────────────────────────────────────────────────────────────────────────
+    // books/{isbn}
+    //   • All authenticated users can browse the catalogue.
+    //   • Only Librarians can add, modify, or remove book records.
+    // ──────────────────────────────────────────────────────────────────────────
+    match /books/{isbn} {
+      allow read: if isAuthenticated();
+      allow create, update, delete: if isLibrarian();
+    }
+
+    // ──────────────────────────────────────────────────────────────────────────
+    // checkouts/{checkoutId}
+    //   • Librarians have full access.
+    //   • Instructors can read all checkouts and create new ones.
+    //   • General users can only read and create their own checkout records.
+    //   • No user may delete a checkout record (audit trail must be preserved).
+    // ──────────────────────────────────────────────────────────────────────────
+    match /checkouts/{checkoutId} {
+      allow read: if isLibrarian() ||
+                     isInstructor() ||
+                     (isAuthenticated() && resource.data.userId == request.auth.uid);
+
+      allow create: if isInstructorOrAbove() ||
+                       (isAuthenticated() &&
+                        request.resource.data.userId == request.auth.uid);
+
+      // Only Librarians or the owning user (to record a return) may update.
+      allow update: if isLibrarian() ||
+                       (isAuthenticated() &&
+                        resource.data.userId == request.auth.uid);
+
+      allow delete: if false;
+    }
+  }
+}

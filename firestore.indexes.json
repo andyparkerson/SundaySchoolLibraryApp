@@ -1,0 +1,21 @@
+{
+  "indexes": [
+    {
+      "collectionGroup": "checkouts",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {"fieldPath": "userId", "order": "ASCENDING"},
+        {"fieldPath": "dateOut", "order": "DESCENDING"}
+      ]
+    },
+    {
+      "collectionGroup": "checkouts",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {"fieldPath": "bookId", "order": "ASCENDING"},
+        {"fieldPath": "dateIn", "order": "ASCENDING"}
+      ]
+    }
+  ],
+  "fieldOverrides": []
+}
