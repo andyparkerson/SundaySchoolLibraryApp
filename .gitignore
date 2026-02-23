@@ -36,10 +36,6 @@ node_modules/
 npm-debug.log
 yarn-error.log
 
-# Azure Functions — never commit real credentials
-api/local.settings.json
-api/dist/
-
 # fastlane
 #
 # It is recommended to not store the screenshots in the git repo.
