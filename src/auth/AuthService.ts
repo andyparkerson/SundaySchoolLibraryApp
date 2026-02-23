@@ -1,13 +1,12 @@
-export interface AuthUser {
-  id: string;
-  name: string;
-  role: 'admin' | 'librarian' | 'viewer';
-}
+import {User, UserRole} from '../models/User';
 
-let currentUser: AuthUser | null = null;
+export type {User as AuthUser};
+export {UserRole};
+
+let currentUser: User | null = null;
 
 export const AuthService = {
-  login(user: AuthUser): void {
+  login(user: User): void {
     currentUser = user;
   },
 
@@ -15,7 +14,7 @@ export const AuthService = {
     currentUser = null;
   },
 
-  getCurrentUser(): AuthUser | null {
+  getCurrentUser(): User | null {
     return currentUser;
   },
 

@@ -3,23 +3,33 @@ import {StyleSheet, Text, View} from 'react-native';
 
 interface BookCardProps {
   title: string;
-  author: string;
-  available: boolean;
+  /** Authors are displayed as a comma-separated list */
+  authors: string[];
+  availableCopies: number;
+  totalCopies: number;
 }
 
-function BookCard({title, author, available}: BookCardProps): React.JSX.Element {
+function BookCard({
+  title,
+  authors,
+  availableCopies,
+  totalCopies,
+}: BookCardProps): React.JSX.Element {
+  const available = availableCopies > 0;
   return (
     <View style={styles.card}>
       <View style={styles.info}>
         <Text style={styles.title}>{title}</Text>
-        <Text style={styles.author}>{author}</Text>
+        <Text style={styles.author}>{authors.join(', ')}</Text>
       </View>
       <View
         style={[
           styles.badge,
           available ? styles.badgeAvailable : styles.badgeUnavailable,
         ]}>
-        <Text style={styles.badgeText}>{available ? 'Available' : 'Out'}</Text>
+        <Text style={styles.badgeText}>
+          {available ? `${availableCopies}/${totalCopies}` : 'Out'}
+        </Text>
       </View>
     </View>
   );
